@@ -20,12 +20,12 @@ A prize wheel for events, built for tablets and laptops. It has no install and n
 
 | Setting | Default |
 |---|---|
-| Expected players | 40 |
+| Expected players | 25 |
 | 🏆 Big prizes | 1 |
 | 🎁 Medium prizes | 1 |
 | 🍬 Small prizes | 2 |
 
-- Expected players are split into equal stretches (with the defaults, 4 stretches of 10). Each stretch has exactly one winner at a random spot, so prizes are spread across the whole day.
+- Expected players are split into equal stretches (with the defaults, 4 stretches of about 6). Each stretch has exactly one winner at a random spot, so prizes are spread across the whole day.
 - **Hard cap:** once the day's prizes are gone, the wheel keeps spinning but every spin lands on Try Again / Sorry / Better Luck. That includes any players beyond the expected count.
 - The budget refills automatically at midnight, or by pressing **Start a new day** in Settings.
 - If turnout differs from plan, change **Expected players** mid-day. The prizes still owed are re-spread across the players still to come.

@@ -49,7 +49,8 @@
       // Percent chance per spin for 'deck' and 'random' modes. "lose" is the remainder (100 - sum).
       odds: { big: 10, medium: 25, small: 50 },
       // Exact prize counts per day, spread across the expected players ('daily' mode).
-      daily: { players: 40, big: 1, medium: 1, small: 2 },
+      daily: { players: 25, big: 1, medium: 1, small: 2 },
+      schema: 2,
       mode: 'daily', // 'daily' = prize budget per day, 'deck' = guaranteed ratio, 'random' = independent spins
       sound: true,
       pin: '',
@@ -67,7 +68,14 @@
         const cfg = Object.assign(defaultConfig(), raw.config);
         // Devices set up before the daily budget existed gave away far too much; move them onto it.
         if (!raw.config.daily) cfg.mode = 'daily';
-        return { config: cfg, runtime: Object.assign(defaultRuntime(), raw.runtime || {}) };
+        const rt = Object.assign(defaultRuntime(), raw.runtime || {});
+        // Schema 2: expected players per day went from 40 to 25. Update devices still on the old default.
+        if ((raw.config.schema || 1) < 2) {
+          if (raw.config.daily && raw.config.daily.players === 40) cfg.daily = Object.assign({}, cfg.daily, { players: 25 });
+          if (rt.day) rt.day.plan = null; // re-spread today's remaining prizes over the new count
+          cfg.schema = 2;
+        }
+        return { config: cfg, runtime: rt };
       }
     } catch (_) { /* storage unavailable or corrupt: fall back to defaults */ }
     return { config: defaultConfig(), runtime: defaultRuntime() };
