@@ -234,6 +234,55 @@
   const hubBtn = $('hubBtn');
   const pointer = $('pointer');
 
+  // ===================================================================
+  // Icons: bundled Twemoji images so prizes look the same on every device,
+  // even ones without a colour emoji font. Unknown emoji fall back to text.
+  // ===================================================================
+  const EMOJI = window.PRIZE_EMOJI || { list: [], svg: {} };
+  const emojiKey = (e) => (e || '').replace(/\uFE0F/g, '');
+  const emojiUrls = {};
+  function emojiUrl(e) {
+    const k = emojiKey(e);
+    if (!EMOJI.svg[k]) return null;
+    return emojiUrls[k] || (emojiUrls[k] = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(EMOJI.svg[k])}`);
+  }
+
+  function emojiNode(e) {
+    const url = emojiUrl(e);
+    if (!url) { const span = document.createElement('span'); span.textContent = e || ''; return span; }
+    const img = new Image();
+    img.className = 'emoji';
+    img.alt = e;
+    img.draggable = false;
+    img.src = url;
+    return img;
+  }
+
+  function hydrateEmoji(root = document) {
+    root.querySelectorAll('[data-e]').forEach((el) => el.replaceChildren(emojiNode(el.dataset.e)));
+  }
+
+  // Decoded images for drawing on the wheel canvas.
+  const wheelImages = {};
+  function wheelImage(e) {
+    const k = emojiKey(e);
+    const url = emojiUrl(k);
+    if (!url) return null;
+    let entry = wheelImages[k];
+    if (!entry) {
+      entry = wheelImages[k] = { img: new Image(), ready: false };
+      entry.img.onload = () => { entry.ready = true; if (!spinning) renderWheel(); };
+      entry.img.src = url;
+    }
+    return entry.ready ? entry.img : null;
+  }
+
+  const ICONS = {
+    soundOn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>',
+    soundOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M22 9l-6 6M16 9l6 6"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>',
+  };
+
   function buildBulbs() {
     const wrap = $('bulbs');
     const n = 24;
@@ -378,7 +427,14 @@
       ctx.translate(emojiR, 0);
       ctx.rotate(Math.PI / 2);
       if (out) ctx.globalAlpha = 0.45;
-      ctx.fillText(p.emoji || '🎉', 0, 0);
+      const icon = wheelImage(p.emoji || '🎉');
+      if (icon) {
+        ctx.shadowColor = 'rgba(0,0,0,0.35)';
+        ctx.shadowBlur = emojiSize * 0.12;
+        ctx.shadowOffsetY = emojiSize * 0.04;
+        ctx.drawImage(icon, -emojiSize / 2, -emojiSize / 2, emojiSize, emojiSize);
+      }
+      else ctx.fillText(p.emoji || '🎉', 0, 0);
       ctx.restore();
 
       const inner = R * 0.25, outer = emojiR - emojiSize * 1.0;
@@ -676,7 +732,7 @@
     const card = $('resultCard');
     card.className = `result-card ${slice.tier}`;
     $('resultTier').textContent = TIER_META[slice.tier].label;
-    $('resultEmoji').textContent = slice.emoji || '🎉';
+    $('resultEmoji').replaceChildren(emojiNode(slice.emoji || '🎉'));
     const prize = $('resultPrize');
     prize.textContent = '';
     if (slice.tier === 'lose') {
@@ -718,7 +774,7 @@
     runtime.history.slice(0, 6).forEach((h) => {
       const li = document.createElement('li');
       li.className = `chip ${h.tier}`;
-      li.textContent = `${h.emoji} ${h.name}`;
+      li.append(emojiNode(h.emoji), ` ${h.name}`);
       li.title = `Player #${h.player}`;
       ul.appendChild(li);
     });
@@ -729,7 +785,7 @@
     $('subtitle').textContent = config.subtitle || '';
     $('subtitle').hidden = !config.subtitle;
     document.title = config.title || 'Prize Spinner';
-    $('soundBtn').textContent = config.sound ? '🔊' : '🔇';
+    $('soundBtn').innerHTML = config.sound ? ICONS.soundOn : ICONS.soundOff;
   }
 
   // ===================================================================
@@ -787,12 +843,15 @@
       const row = document.createElement('div');
       row.className = 'prize-row';
 
-      const emoji = document.createElement('input');
-      emoji.className = 'emoji-in';
-      emoji.value = p.emoji;
-      emoji.maxLength = 8;
-      emoji.setAttribute('aria-label', 'Icon');
-      emoji.addEventListener('input', () => { p.emoji = emoji.value.trim(); });
+      const emoji = document.createElement('button');
+      emoji.type = 'button';
+      emoji.className = 'emoji-in emoji-btn';
+      emoji.setAttribute('aria-label', 'Choose icon');
+      emoji.append(emojiNode(p.emoji || '🎉'));
+      emoji.addEventListener('click', () => openEmojiPicker(p.emoji, (e) => {
+        p.emoji = e;
+        emoji.replaceChildren(emojiNode(e));
+      }));
 
       const name = document.createElement('input');
       name.className = 'name-in';
@@ -832,7 +891,7 @@
       const del = document.createElement('button');
       del.className = 'del-btn';
       del.type = 'button';
-      del.textContent = '🗑';
+      del.innerHTML = ICONS.trash;
       del.setAttribute('aria-label', `Remove ${p.name}`);
       del.addEventListener('click', () => {
         if (draft.prizes.length <= MIN_PRIZES) { $('settingsError').textContent = `The wheel needs at least ${MIN_PRIZES} slices.`; return; }
@@ -891,10 +950,10 @@
     const pct = (n) => (s.spins ? `${Math.round((n / s.spins) * 100)}% of spins` : '–');
     const items = [
       ['Spins', s.spins, `Next: Player #${runtime.player}`],
-      ['🏆 Big', s.big, pct(s.big)],
-      ['🎁 Medium', s.medium, pct(s.medium)],
-      ['🍬 Small', s.small, pct(s.small)],
-      ['🍀 No prize', s.lose, pct(s.lose)],
+      [['🏆', 'Big'], s.big, pct(s.big)],
+      [['🎁', 'Medium'], s.medium, pct(s.medium)],
+      [['🍬', 'Small'], s.small, pct(s.small)],
+      [['🍀', 'No prize'], s.lose, pct(s.lose)],
     ];
     if (config.mode === 'deck') {
       const left = runtime.deck.length || deckSizeFor(config.odds);
@@ -914,7 +973,8 @@
     items.forEach(([k, v, sub]) => {
       const d = document.createElement('div');
       d.className = 'stat';
-      const kk = document.createElement('div'); kk.className = 'k'; kk.textContent = k;
+      const kk = document.createElement('div'); kk.className = 'k';
+      if (Array.isArray(k)) kk.append(emojiNode(k[0]), ` ${k[1]}`); else kk.textContent = k;
       const vv = document.createElement('div'); vv.className = 'v'; vv.textContent = v;
       const ss = document.createElement('div'); ss.className = 's'; ss.textContent = sub;
       d.append(kk, vv, ss);
@@ -975,6 +1035,33 @@
   }
 
   // ===================================================================
+  // Icon picker
+  // ===================================================================
+  let onEmojiPick = null;
+  function openEmojiPicker(current, onPick) {
+    onEmojiPick = onPick;
+    const grid = $('emojiGrid');
+    if (!grid.childElementCount) {
+      EMOJI.list.forEach((e) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.dataset.e = e;
+        b.setAttribute('aria-label', e);
+        b.append(emojiNode(e));
+        b.addEventListener('click', () => {
+          $('emojiModal').hidden = true;
+          if (onEmojiPick) onEmojiPick(e);
+        });
+        grid.appendChild(b);
+      });
+    }
+    grid.querySelectorAll('button').forEach((b) => b.classList.toggle('sel', b.dataset.e === emojiKey(current)));
+    $('emojiModal').hidden = false;
+    const sel = grid.querySelector('.sel');
+    if (sel) sel.scrollIntoView({ block: 'center' });
+  }
+
+  // ===================================================================
   // Misc helpers
   // ===================================================================
   let toastTimer;
@@ -1016,6 +1103,8 @@
   });
 
   $('drawerClose').addEventListener('click', closeDrawer);
+  $('emojiClose').addEventListener('click', () => { $('emojiModal').hidden = true; });
+  $('emojiModal').addEventListener('click', (e) => { if (e.target.id === 'emojiModal') $('emojiModal').hidden = true; });
   $('drawerScrim').addEventListener('click', closeDrawer);
   $('cancelSettings').addEventListener('click', closeDrawer);
   $('saveSettings').addEventListener('click', saveSettings);
@@ -1068,6 +1157,10 @@
   document.addEventListener('keydown', (e) => {
     const tag = (e.target.tagName || '').toLowerCase();
     if (['input', 'select', 'textarea'].includes(tag)) return;
+    if (!$('emojiModal').hidden) {
+      if (e.key === 'Escape') $('emojiModal').hidden = true;
+      return;
+    }
     if ($('drawer').classList.contains('open') || !$('pinModal').hidden) {
       if (e.key === 'Escape') { closeDrawer(); $('pinModal').hidden = true; }
       return;
@@ -1093,6 +1186,7 @@
   // Boot
   // ===================================================================
   arrangeSegments();
+  hydrateEmoji();
   buildBulbs();
   renderHeader();
   renderPlayer(false);

@@ -22,9 +22,9 @@
     <header class="topbar">
       <div class="player-badge" id="playerBadge">Player #1</div>
       <div class="top-actions">
-        <button class="icon-btn" id="soundBtn" aria-label="Toggle sound" title="Sound">🔊</button>
-        <button class="icon-btn" id="fullscreenBtn" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button>
-        <button class="icon-btn" id="settingsBtn" aria-label="Open settings" title="Settings">⚙️</button>
+        <button class="icon-btn" id="soundBtn" aria-label="Toggle sound" title="Sound"></button>
+        <button class="icon-btn" id="fullscreenBtn" aria-label="Toggle fullscreen" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+        <button class="icon-btn" id="settingsBtn" aria-label="Open settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
       </div>
     </header>
 
@@ -75,7 +75,7 @@
     <div class="result-card" id="resultCard" role="dialog" aria-modal="true" aria-labelledby="resultHeadline">
       <div class="rays" aria-hidden="true"></div>
       <div class="result-tier" id="resultTier">BIG PRIZE</div>
-      <div class="result-emoji" id="resultEmoji">🏆</div>
+      <div class="result-emoji" id="resultEmoji"></div>
       <h2 class="result-headline" id="resultHeadline">JACKPOT!</h2>
       <p class="result-prize" id="resultPrize">You won the Grand Prize</p>
       <button class="next-btn" id="nextBtn">Next Player →</button>
@@ -102,7 +102,7 @@
     <div class="drawer-panel" role="dialog" aria-modal="true" aria-label="Settings">
       <div class="drawer-head">
         <h2>Settings</h2>
-        <button class="icon-btn" id="drawerClose" aria-label="Close settings">✕</button>
+        <button class="icon-btn" id="drawerClose" aria-label="Close settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="drawer-body">
         <section class="card">
@@ -135,10 +135,10 @@
           <h3>Today's prize budget</h3>
           <p class="muted">Prizes are spread evenly through the day: one winner somewhere in each stretch of players, at a random spot. The day resets automatically at midnight, or use "Start a new day" below.</p>
           <div class="odds-grid">
-            <label class="field"><span>👥 Expected players</span><input id="dayPlayers" type="number" min="1" max="10000" step="1" inputmode="numeric" /></label>
-            <label class="field"><span>🏆 Big prizes</span><input id="dayBig" type="number" min="0" max="999" step="1" inputmode="numeric" /></label>
-            <label class="field"><span>🎁 Medium prizes</span><input id="dayMedium" type="number" min="0" max="999" step="1" inputmode="numeric" /></label>
-            <label class="field"><span>🍬 Small prizes</span><input id="daySmall" type="number" min="0" max="999" step="1" inputmode="numeric" /></label>
+            <label class="field"><span><i class="emo" data-e="👥"></i> Expected players</span><input id="dayPlayers" type="number" min="1" max="10000" step="1" inputmode="numeric" /></label>
+            <label class="field"><span><i class="emo" data-e="🏆"></i> Big prizes</span><input id="dayBig" type="number" min="0" max="999" step="1" inputmode="numeric" /></label>
+            <label class="field"><span><i class="emo" data-e="🎁"></i> Medium prizes</span><input id="dayMedium" type="number" min="0" max="999" step="1" inputmode="numeric" /></label>
+            <label class="field"><span><i class="emo" data-e="🍬"></i> Small prizes</span><input id="daySmall" type="number" min="0" max="999" step="1" inputmode="numeric" /></label>
           </div>
           <p class="muted day-summary" id="daySummary"></p>
         </section>
@@ -146,10 +146,10 @@
         <section class="card" id="oddsCard">
           <h3>Odds per spin</h3>
           <div class="odds-grid">
-            <label class="field"><span>🏆 Big %</span><input id="oddsBig" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
-            <label class="field"><span>🎁 Medium %</span><input id="oddsMedium" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
-            <label class="field"><span>🍬 Small %</span><input id="oddsSmall" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
-            <div class="field"><span>🍀 No prize</span><output id="oddsLose" class="out">15%</output></div>
+            <label class="field"><span><i class="emo" data-e="🏆"></i> Big %</span><input id="oddsBig" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
+            <label class="field"><span><i class="emo" data-e="🎁"></i> Medium %</span><input id="oddsMedium" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
+            <label class="field"><span><i class="emo" data-e="🍬"></i> Small %</span><input id="oddsSmall" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
+            <div class="field"><span><i class="emo" data-e="🍀"></i> No prize</span><output id="oddsLose" class="out">15%</output></div>
           </div>
         </section>
 
@@ -179,8 +179,21 @@
     </div>
   </aside>
 
+  <!-- Icon picker -->
+  <div class="modal" id="emojiModal" hidden>
+    <div class="emoji-card" role="dialog" aria-modal="true" aria-label="Choose an icon">
+      <div class="drawer-head">
+        <h2>Choose an icon</h2>
+        <button class="icon-btn" id="emojiClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="emoji-grid" id="emojiGrid"></div>
+      <p class="credit">Icons: <a href="https://github.com/jdecked/twemoji" target="_blank" rel="noopener">Twemoji</a>, CC-BY 4.0</p>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="emoji.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

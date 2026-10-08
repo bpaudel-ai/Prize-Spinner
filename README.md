@@ -35,7 +35,13 @@ The other two modes, **Guaranteed ratio** and **Pure random**, use win percentag
 
 ## Editing prizes (⚙️ Settings)
 
-- Add, rename or remove prizes. You can change each prize's emoji, tier (Big / Medium / Small / No prize) and **stock**.
+- Add, rename or remove prizes. You can change each prize's icon (tap it to pick from the built-in set), tier (Big / Medium / Small / No prize) and **stock**.
 - When a prize's stock reaches 0, its slice greys out with "(OUT)". Spins for that tier drop to the next tier down.
 - Set an **Admin PIN** so players can't open settings.
 - **Live stats** shows spins and the real win rate for each tier.
+
+## Icons
+
+Prize icons are bundled into `emoji.js`, so they look the same on every tablet and laptop, including devices without a colour emoji font, and they work offline. To add more icons, edit the list in `tools/build_emoji.py` and regenerate (instructions are at the top of that file).
+
+Icon graphics: [Twemoji](https://github.com/jdecked/twemoji), © Twitter, Inc and other contributors, licensed [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
