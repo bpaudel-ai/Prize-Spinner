@@ -120,18 +120,36 @@
         </section>
 
         <section class="card">
+          <h3>How prizes are given out</h3>
+          <div class="mode">
+            <label class="radio"><input type="radio" name="mode" value="daily" />
+              <span><b>Daily prize budget</b> (recommended). Give out an exact number of prizes per day, spread across your expected players. Once they are gone, the wheel keeps spinning but always lands on no prize.</span></label>
+            <label class="radio"><input type="radio" name="mode" value="deck" />
+              <span><b>Guaranteed ratio</b>. Win percentages are dealt from a shuffled deck, so every <b id="deckSize">20</b> spins hit the exact ratios. No daily limit.</span></label>
+            <label class="radio"><input type="radio" name="mode" value="random" />
+              <span><b>Pure random</b>. Each spin is independent, using the percentages. No daily limit, and streaks happen.</span></label>
+          </div>
+        </section>
+
+        <section class="card" id="dailyCard">
+          <h3>Today's prize budget</h3>
+          <p class="muted">Prizes are spread evenly through the day: one winner somewhere in each stretch of players, at a random spot. The day resets automatically at midnight, or use "Start a new day" below.</p>
+          <div class="odds-grid">
+            <label class="field"><span>👥 Expected players</span><input id="dayPlayers" type="number" min="1" max="10000" step="1" inputmode="numeric" /></label>
+            <label class="field"><span>🏆 Big prizes</span><input id="dayBig" type="number" min="0" max="999" step="1" inputmode="numeric" /></label>
+            <label class="field"><span>🎁 Medium prizes</span><input id="dayMedium" type="number" min="0" max="999" step="1" inputmode="numeric" /></label>
+            <label class="field"><span>🍬 Small prizes</span><input id="daySmall" type="number" min="0" max="999" step="1" inputmode="numeric" /></label>
+          </div>
+          <p class="muted day-summary" id="daySummary"></p>
+        </section>
+
+        <section class="card" id="oddsCard">
           <h3>Odds per spin</h3>
           <div class="odds-grid">
             <label class="field"><span>🏆 Big %</span><input id="oddsBig" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
             <label class="field"><span>🎁 Medium %</span><input id="oddsMedium" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
             <label class="field"><span>🍬 Small %</span><input id="oddsSmall" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
             <div class="field"><span>🍀 No prize</span><output id="oddsLose" class="out">15%</output></div>
-          </div>
-          <div class="mode">
-            <label class="radio"><input type="radio" name="mode" value="deck" />
-              <span><b>Guaranteed ratio</b> (recommended). Outcomes are dealt from a shuffled deck, so every <b id="deckSize">20</b> spins hit the exact ratios. You never run out of big prizes early or go all day without one.</span></label>
-            <label class="radio"><input type="radio" name="mode" value="random" />
-              <span><b>Pure random</b>. Each spin is independent. Averages out over time but streaks happen.</span></label>
           </div>
         </section>
 
@@ -145,6 +163,7 @@
           <h3>Live stats</h3>
           <div id="stats" class="stats"></div>
           <div class="row-btns">
+            <button class="btn ghost" id="newDay">Start a new day</button>
             <button class="btn ghost" id="resetStats">Reset stats &amp; players</button>
             <button class="btn danger" id="resetAll">Restore defaults</button>
           </div>

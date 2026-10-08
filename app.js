@@ -46,26 +46,28 @@
         { id: uid(), emoji: '😅', name: 'Sorry!', tier: 'lose', qty: null },
         { id: uid(), emoji: '🍀', name: 'Better Luck Next Time', tier: 'lose', qty: null },
       ],
-      // Percent chance per spin. "lose" is the remainder (100 - sum).
+      // Percent chance per spin for 'deck' and 'random' modes. "lose" is the remainder (100 - sum).
       odds: { big: 10, medium: 25, small: 50 },
-      mode: 'deck', // 'deck' = guaranteed ratio, 'random' = independent spins
+      // Exact prize counts per day, spread across the expected players ('daily' mode).
+      daily: { players: 40, big: 1, medium: 1, small: 2 },
+      mode: 'daily', // 'daily' = prize budget per day, 'deck' = guaranteed ratio, 'random' = independent spins
       sound: true,
       pin: '',
     };
   }
 
   function defaultRuntime() {
-    return { deck: [], player: 1, stats: { spins: 0, big: 0, medium: 0, small: 0, lose: 0 }, history: [], rotation: 0 };
+    return { deck: [], day: null, player: 1, stats: { spins: 0, big: 0, medium: 0, small: 0, lose: 0 }, history: [], rotation: 0 };
   }
 
   function load() {
     try {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
       if (raw && raw.config && Array.isArray(raw.config.prizes) && raw.config.prizes.length >= MIN_PRIZES) {
-        return {
-          config: Object.assign(defaultConfig(), raw.config),
-          runtime: Object.assign(defaultRuntime(), raw.runtime || {}),
-        };
+        const cfg = Object.assign(defaultConfig(), raw.config);
+        // Devices set up before the daily budget existed gave away far too much; move them onto it.
+        if (!raw.config.daily) cfg.mode = 'daily';
+        return { config: cfg, runtime: Object.assign(defaultRuntime(), raw.runtime || {}) };
       }
     } catch (_) { /* storage unavailable or corrupt: fall back to defaults */ }
     return { config: defaultConfig(), runtime: defaultRuntime() };
@@ -110,7 +112,63 @@
     return deck;
   }
 
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = randInt(i + 1);
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // ----- Daily prize budget -----
+  const PRIZE_TIERS = ['big', 'medium', 'small'];
+  const todayKey = () => new Date().toLocaleDateString('en-CA'); // local YYYY-MM-DD
+
+  function dailyTargets(daily = config.daily) {
+    const n = (v) => Math.max(0, Math.floor(+v) || 0);
+    return { players: n(daily.players), big: n(daily.big), medium: n(daily.medium), small: n(daily.small) };
+  }
+  const sumPrizes = (o) => PRIZE_TIERS.reduce((a, t) => a + (o[t] || 0), 0);
+
+  function startNewDay() {
+    runtime.day = { date: todayKey(), spins: 0, given: { big: 0, medium: 0, small: 0 }, plan: null, planStart: 0 };
+  }
+
+  // Lay the prizes still owed today across the players still expected today: split those players
+  // into equal stretches and put one prize at a random spot in each, in a shuffled tier order.
+  function buildDailyPlan() {
+    const day = runtime.day;
+    const tgt = dailyTargets();
+    const remainingPlayers = Math.max(0, tgt.players - day.spins);
+    const owed = [];
+    PRIZE_TIERS.forEach((t) => { for (let i = day.given[t]; i < tgt[t]; i++) owed.push(t); });
+    shuffle(owed);
+    const plan = new Array(remainingPlayers).fill('lose');
+    const k = Math.min(owed.length, remainingPlayers);
+    for (let j = 0; j < k; j++) {
+      const from = Math.floor((j * remainingPlayers) / k);
+      const to = Math.floor(((j + 1) * remainingPlayers) / k);
+      plan[from + randInt(to - from)] = owed[j];
+    }
+    day.plan = plan;
+    day.planStart = day.spins;
+  }
+
+  function ensureDay() {
+    if (!runtime.day || runtime.day.date !== todayKey()) startNewDay();
+    if (!runtime.day.plan) buildDailyPlan();
+  }
+
   function drawTier() {
+    if (config.mode === 'daily') {
+      ensureDay();
+      const day = runtime.day;
+      const t = day.plan[day.spins - day.planStart] || 'lose';
+      day.spins++;
+      // Hard cap: never exceed today's total, whatever happened earlier (stock swaps, edits).
+      if (t !== 'lose' && sumPrizes(day.given) >= sumPrizes(dailyTargets())) return 'lose';
+      return t;
+    }
     if (config.mode === 'deck') {
       if (!runtime.deck.length) runtime.deck = buildDeck();
       return runtime.deck.splice(randInt(runtime.deck.length), 1)[0];
@@ -584,6 +642,7 @@
     const won = slice.tier;
     runtime.stats.spins++;
     runtime.stats[won]++;
+    if (config.mode === 'daily' && won !== 'lose' && runtime.day) runtime.day.given[won]++;
     if (won !== 'lose' && typeof slice.qty === 'number') slice.qty = Math.max(0, slice.qty - 1);
     runtime.history.unshift({ player: runtime.player, emoji: slice.emoji, name: slice.name, tier: won });
     runtime.history = runtime.history.slice(0, 30);
@@ -690,12 +749,18 @@
     $('oddsBig').value = draft.odds.big;
     $('oddsMedium').value = draft.odds.medium;
     $('oddsSmall').value = draft.odds.small;
+    $('dayPlayers').value = draft.daily.players;
+    $('dayBig').value = draft.daily.big;
+    $('dayMedium').value = draft.daily.medium;
+    $('daySmall').value = draft.daily.small;
     document.querySelectorAll('input[name="mode"]').forEach((r) => { r.checked = r.value === draft.mode; });
     $('setSound').checked = !!draft.sound;
     $('setPin').value = draft.pin || '';
     $('settingsError').textContent = '';
     renderPrizeRows();
     updateOddsOutput();
+    updateDailySummary();
+    updateModeCards();
     renderStats();
     $('drawer').classList.add('open');
     $('drawer').setAttribute('aria-hidden', 'false');
@@ -787,6 +852,32 @@
     $('deckSize').textContent = sum <= 100 ? deckSizeFor(o) : '?';
   }
 
+  const selectedMode = () => (document.querySelector('input[name="mode"]:checked') || {}).value || 'daily';
+
+  function updateModeCards() {
+    const daily = selectedMode() === 'daily';
+    $('dailyCard').hidden = !daily;
+    $('oddsCard').hidden = daily;
+  }
+
+  function readDaily() {
+    return dailyTargets({ players: $('dayPlayers').value, big: $('dayBig').value, medium: $('dayMedium').value, small: $('daySmall').value });
+  }
+
+  function updateDailySummary() {
+    const d = readDaily();
+    const total = sumPrizes(d);
+    const out = $('daySummary');
+    const bad = d.players < 1 || total > d.players;
+    out.classList.toggle('bad', bad);
+    if (d.players < 1) { out.textContent = 'Enter how many players you expect today.'; return; }
+    if (total > d.players) { out.textContent = `That's ${total} prizes for ${d.players} players. Lower the prizes or raise the players.`; return; }
+    if (!total) { out.textContent = `No prizes today. All ${d.players} players land on no prize.`; return; }
+    const every = d.players / total;
+    out.textContent = `${total} prize${total === 1 ? '' : 's'} across ${d.players} players: about 1 winner every ${Number.isInteger(every) ? every : every.toFixed(1)} players. ` +
+      `${d.players - total} players get no prize. Extra players beyond ${d.players} also get no prize.`;
+  }
+
   function renderStats() {
     const s = runtime.stats;
     const pct = (n) => (s.spins ? `${Math.round((n / s.spins) * 100)}% of spins` : '–');
@@ -800,6 +891,15 @@
     if (config.mode === 'deck') {
       const left = runtime.deck.length || deckSizeFor(config.odds);
       items.push(['Deck', left, 'spins left in this cycle']);
+    }
+    if (config.mode === 'daily') {
+      const tgt = dailyTargets();
+      const day = runtime.day && runtime.day.date === todayKey() ? runtime.day : { spins: 0, given: { big: 0, medium: 0, small: 0 } };
+      const left = Math.max(0, sumPrizes(tgt) - sumPrizes(day.given));
+      items.unshift(
+        ['Prizes left today', left, `of ${sumPrizes(tgt)}: ${PRIZE_TIERS.map((t) => `${Math.max(0, tgt[t] - day.given[t])} ${t}`).join(', ')}`],
+        ['Players today', day.spins, `of ~${tgt.players} expected`]
+      );
     }
     const wrap = $('stats');
     wrap.innerHTML = '';
@@ -821,11 +921,17 @@
     draft.subtitle = $('setSubtitle').value.trim();
     draft.sound = $('setSound').checked;
     draft.pin = $('setPin').value.trim();
-    draft.mode = (document.querySelector('input[name="mode"]:checked') || {}).value || 'deck';
+    draft.mode = selectedMode();
 
     const odds = readOdds();
-    if ([odds.big, odds.medium, odds.small].some((x) => x < 0 || x > 100)) { err.textContent = 'Each percentage must be between 0 and 100.'; return; }
-    if (odds.big + odds.medium + odds.small > 100) { err.textContent = 'Big + Medium + Small cannot exceed 100%.'; return; }
+    const daily = readDaily();
+    if (draft.mode === 'daily') {
+      if (daily.players < 1) { err.textContent = 'Enter how many players you expect today.'; return; }
+      if (sumPrizes(daily) > daily.players) { err.textContent = 'You have more prizes than expected players.'; return; }
+    } else {
+      if ([odds.big, odds.medium, odds.small].some((x) => x < 0 || x > 100)) { err.textContent = 'Each percentage must be between 0 and 100.'; return; }
+      if (odds.big + odds.medium + odds.small > 100) { err.textContent = 'Big + Medium + Small cannot exceed 100%.'; return; }
+    }
 
     let bad = false;
     document.querySelectorAll('#prizeRows .name-in').forEach((el, i) => {
@@ -835,14 +941,20 @@
     if (bad) { err.textContent = 'Every prize needs a name.'; return; }
     if (draft.prizes.length < MIN_PRIZES) { err.textContent = `The wheel needs at least ${MIN_PRIZES} slices.`; return; }
 
-    const missing = ['big', 'medium', 'small'].filter((t) => odds[t] > 0 && !draft.prizes.some((p) => p.tier === t));
-    if (100 - odds.big - odds.medium - odds.small > 0 && !draft.prizes.some((p) => p.tier === 'lose')) missing.push('lose');
+    const want = draft.mode === 'daily' ? daily : odds;
+    const missing = PRIZE_TIERS.filter((t) => want[t] > 0 && !draft.prizes.some((p) => p.tier === t));
+    const anyLosers = draft.mode === 'daily' ? daily.players > sumPrizes(daily) : 100 - odds.big - odds.medium - odds.small > 0;
+    if (anyLosers && !draft.prizes.some((p) => p.tier === 'lose')) missing.push('lose');
 
     const oddsChanged = JSON.stringify(odds) !== JSON.stringify(config.odds) || draft.mode !== config.mode;
+    const dailyChanged = JSON.stringify(daily) !== JSON.stringify(dailyTargets()) || draft.mode !== config.mode;
     draft.odds = odds;
+    draft.daily = daily;
     draft.prizes.forEach((p) => { delete p._color; });
     config = draft;
     if (oddsChanged) runtime.deck = [];
+    // Re-spread whatever prizes are still owed today across the players still expected.
+    if (dailyChanged && runtime.day) runtime.day.plan = null;
     arrangeSegments();
     save();
     renderHeader();
@@ -907,8 +1019,16 @@
     const names = document.querySelectorAll('#prizeRows .name-in');
     names[names.length - 1].focus();
   });
+  $('newDay').addEventListener('click', () => {
+    if (!confirm("Start a new day? Today's prize budget refills and the player count for the day starts again.")) return;
+    startNewDay();
+    save(); renderStats();
+    toast("New day started. Today's prizes are ready.");
+  });
+  document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener('change', updateModeCards));
+  ['dayPlayers', 'dayBig', 'dayMedium', 'daySmall'].forEach((id) => $(id).addEventListener('input', updateDailySummary));
   $('resetStats').addEventListener('click', () => {
-    if (!confirm('Reset stats, recent spins, player count and the odds deck?')) return;
+    if (!confirm("Reset all stats, recent spins, player count and today's prize budget?")) return;
     const keepRot = runtime.rotation;
     runtime = defaultRuntime();
     runtime.rotation = keepRot;
