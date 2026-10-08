@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1030" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Prize Spinner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>
+    <span class="stars"></span>
+  </div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="player-badge" id="playerBadge">Player #1</div>
+      <div class="top-actions">
+        <button class="icon-btn" id="soundBtn" aria-label="Toggle sound" title="Sound">🔊</button>
+        <button class="icon-btn" id="fullscreenBtn" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button>
+        <button class="icon-btn" id="settingsBtn" aria-label="Open settings" title="Settings">⚙️</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="title-block">
+        <h1 id="title" class="title">Spin to Win!</h1>
+        <p id="subtitle" class="subtitle">One spin per player. Good luck!</p>
+      </section>
+
+      <section class="wheel-col">
+        <div class="wheel-stage" id="stage" data-state="idle">
+          <div class="rim"><div class="bulbs" id="bulbs"></div></div>
+          <canvas id="wheel" class="wheel"></canvas>
+          <div class="gloss" aria-hidden="true"></div>
+          <button class="hub" id="hubBtn" aria-label="Spin the wheel"><span>SPIN</span></button>
+          <div class="pointer" id="pointer" aria-hidden="true">
+            <svg viewBox="0 0 60 80">
+              <defs>
+                <linearGradient id="pg" x1="0" x2="1">
+                  <stop offset="0" stop-color="#fff6c8"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#d99a00"/>
+                </linearGradient>
+              </defs>
+              <path d="M30 78 L6 22 A26 26 0 1 1 54 22 Z" fill="url(#pg)" stroke="#7a4b00" stroke-width="3" stroke-linejoin="round"/>
+              <circle cx="30" cy="24" r="9" fill="#e8344e" stroke="#7a1020" stroke-width="2.5"/>
+              <circle cx="27" cy="21" r="3" fill="#fff" opacity=".7"/>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="spin-block">
+        <button class="spin-btn" id="spinBtn"><span class="spin-label">SPIN</span></button>
+        <p class="hint" id="hint">Tap the button or the wheel</p>
+      </section>
+
+      <section class="recent-block">
+        <h3 class="recent-title">Recent spins</h3>
+        <ul class="recent" id="recent"></ul>
+      </section>
+    </main>
+  </div>
+
+  <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
+  <div class="flash" id="flash" aria-hidden="true"></div>
+
+  <!-- Result -->
+  <div class="modal" id="resultModal" hidden>
+    <div class="result-card" id="resultCard" role="dialog" aria-modal="true" aria-labelledby="resultHeadline">
+      <div class="rays" aria-hidden="true"></div>
+      <div class="result-tier" id="resultTier">BIG PRIZE</div>
+      <div class="result-emoji" id="resultEmoji">🏆</div>
+      <h2 class="result-headline" id="resultHeadline">JACKPOT!</h2>
+      <p class="result-prize" id="resultPrize">You won the Grand Prize</p>
+      <button class="next-btn" id="nextBtn">Next Player →</button>
+    </div>
+  </div>
+
+  <!-- PIN -->
+  <div class="modal" id="pinModal" hidden>
+    <form class="pin-card" id="pinForm">
+      <h3>Staff only</h3>
+      <p>Enter the admin PIN to edit prizes.</p>
+      <input id="pinInput" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" />
+      <p class="error" id="pinError"></p>
+      <div class="row-btns">
+        <button type="button" class="btn ghost" id="pinCancel">Cancel</button>
+        <button type="submit" class="btn primary">Unlock</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Settings -->
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-scrim" id="drawerScrim"></div>
+    <div class="drawer-panel" role="dialog" aria-modal="true" aria-label="Settings">
+      <div class="drawer-head">
+        <h2>Settings</h2>
+        <button class="icon-btn" id="drawerClose" aria-label="Close settings">✕</button>
+      </div>
+      <div class="drawer-body">
+        <section class="card">
+          <h3>Event</h3>
+          <label class="field"><span>Title</span><input id="setTitle" maxlength="40" /></label>
+          <label class="field"><span>Subtitle</span><input id="setSubtitle" maxlength="80" /></label>
+        </section>
+
+        <section class="card">
+          <h3>Prizes on the wheel</h3>
+          <p class="muted">Tier decides the odds. "No prize" slices are your Try Again / Better Luck slots. Leave stock blank for unlimited.</p>
+          <div class="prize-head"><span>Icon</span><span>Name</span><span>Tier</span><span>Stock</span><span></span></div>
+          <div id="prizeRows" class="prize-rows"></div>
+          <button class="btn ghost full" id="addPrize">+ Add prize</button>
+        </section>
+
+        <section class="card">
+          <h3>Odds per spin</h3>
+          <div class="odds-grid">
+            <label class="field"><span>🏆 Big %</span><input id="oddsBig" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
+            <label class="field"><span>🎁 Medium %</span><input id="oddsMedium" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
+            <label class="field"><span>🍬 Small %</span><input id="oddsSmall" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
+            <div class="field"><span>🍀 No prize</span><output id="oddsLose" class="out">15%</output></div>
+          </div>
+          <div class="mode">
+            <label class="radio"><input type="radio" name="mode" value="deck" />
+              <span><b>Guaranteed ratio</b> (recommended). Outcomes are dealt from a shuffled deck, so every <b id="deckSize">20</b> spins hit the exact ratios. You never run out of big prizes early or go all day without one.</span></label>
+            <label class="radio"><input type="radio" name="mode" value="random" />
+              <span><b>Pure random</b>. Each spin is independent. Averages out over time but streaks happen.</span></label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3>Kiosk</h3>
+          <label class="switch"><input type="checkbox" id="setSound" /><span>Sound effects</span></label>
+          <label class="field"><span>Admin PIN (optional, locks this panel)</span><input id="setPin" type="password" inputmode="numeric" maxlength="12" autocomplete="new-password" placeholder="No PIN" /></label>
+        </section>
+
+        <section class="card">
+          <h3>Live stats</h3>
+          <div id="stats" class="stats"></div>
+          <div class="row-btns">
+            <button class="btn ghost" id="resetStats">Reset stats &amp; players</button>
+            <button class="btn danger" id="resetAll">Restore defaults</button>
+          </div>
+        </section>
+      </div>
+      <div class="drawer-foot">
+        <p class="error" id="settingsError"></p>
+        <div class="row-btns">
+          <button class="btn ghost" id="cancelSettings">Cancel</button>
+          <button class="btn primary" id="saveSettings">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
